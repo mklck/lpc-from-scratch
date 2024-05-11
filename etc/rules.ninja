@@ -1,0 +1,22 @@
+cc=arm-none-eabi-gcc
+as=arm-none-eabi-as
+ld=arm-none-eabi-ld
+objcopy=arm-none-eabi-objcopy
+
+cflags=
+asflags=
+
+rule cc
+  command = $cc $cflags -c -o $out $in
+rule as
+  command = $as $asflags -c -o $out $in
+rule ld
+  command = $ld $ldflags -T boot/main.ld -o $out $in
+rule make-hex
+  command = $objcopy -O ihex $in $out
+rule make-regmap-header
+  generator = 1
+  command = awk -f etc/conv-regmap.awk header < $in > $out
+rule make-regmap-linker
+  generator = 1
+  command = awk -f etc/conv-regmap.awk linker < $in > $out

@@ -1,0 +1,39 @@
+#!/usr/bin/env sh
+
+[ -z $out ] && out=out
+[ -d $out ] || mkdir $out
+
+function b {
+	target=$1
+	cmd=$2
+	shift; shift
+	echo "build ${target}: ${cmd} $@" >> build.ninja
+}
+
+cat > build.ninja <<EOT
+include etc/rules.ninja
+
+cflags=\$cflags -Iinclude -ffreestanding -mcpu=arm7tdmi
+asflags=\$asflags -mcpu=arm7tdmi
+
+EOT
+
+b $out/crt.o as boot/crt.s
+
+objs=$out/crt.o
+
+for x in src/*.c
+do
+	obj=${out}/`basename $x`.o
+	objs="$obj $objs"
+	b $obj cc "$x | headers"
+done
+
+b $out/main.elf ld       "$objs | boot/main.ld boot/regmap.ld"
+b $out/main.hex make-hex $out/main.elf
+
+b include/lpc213x.h make-regmap-header etc/regmap
+b boot/regmap.ld    make-regmap-linker etc/regmap
+
+echo "build headers: phony include/lpc213x.h" >> build.ninja
+echo "default out/main.hex" >> build.ninja
