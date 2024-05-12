@@ -14,4 +14,6 @@ typedef unsigned char bool;
 
 typedef u32 Port;
 
+typedef void (IrqFn)(void);
+
 #endif
