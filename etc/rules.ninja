@@ -3,8 +3,9 @@ as=arm-none-eabi-as
 ld=arm-none-eabi-ld
 objcopy=arm-none-eabi-objcopy
 
-cflags=
-asflags=
+cflags= -g
+asflags= -g
+ldflags= -g
 
 rule cc
   command = $cc $cflags -c -o $out $in

@@ -3,42 +3,63 @@
 
 #include <timer.h>
 
-typedef struct {
-	u32 stopMask;
-	u32 startMask;
-} BitWalkPattern;
+static IrqFn timerHandle1, timerHandle2;
 
 static void
-bitWalk(BitWalkPattern *p, u32 *bm)
+delay(u32 d)
 {
-	*bm &= p->stopMask;
-	*bm = *bm? *bm << 1: p->startMask;
+	for (; d; d--)
+		;
 }
 
 static void
 init(void)
 {
 	IO1DIR = 0xFF << 16;
+	IO1CLR = IO1DIR;
 	timerInit();
+}
+
+static void
+setLed(int nr, bool on)
+{
+	Port *p;
+	p = (on? &IO1SET : &IO1CLR);
+	*p = 1 << (nr + 16);
+}
+
+static void
+timerHandle2(void)
+{
+	setLed(0, false);
+	setTimerInt(750);
+	setTimerISR(timerHandle1);
+}
+
+static void
+timerHandle1(void)
+{
+	setLed(0, true);
+	setTimerInt(250);
+	setTimerISR(timerHandle2);
 }
 
 void
 main(void)
 {
-	BitWalkPattern p = {
-		.stopMask = 0xFF << 16,
-		.startMask = 1 << 16
-	};
-	u32 bm = p.startMask;
+	bool led = false;
 
 	init();
+	setTimerInt(500);
+	setTimerISR(timerHandle1);
 
-	for (;;) {
-		IO1CLR = IO1DIR;
-		IO1SET = bm;
-		bitWalk(&p, &bm);
-		timerSet(1000);
-		wait();
+	for(;;) {
+		if (led)
+			IO1SET = 1 << 23;
+		else
+			IO1CLR = 1 << 23;
+		led = !led;
+		delay(20e3);
 	}
 
 	return;
