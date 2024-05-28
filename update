@@ -10,6 +10,10 @@ function b {
 	echo "build ${target}: ${cmd} $@" >> build.ninja
 }
 
+function match {
+	echo "$1" | grep -qe "$2"
+}
+
 cat > build.ninja <<EOT
 include etc/rules.ninja
 
@@ -22,11 +26,13 @@ b $out/crt.o as boot/crt.s
 
 objs=$out/crt.o
 
-for x in src/*.c
+for x in src/*
 do
 	obj=${out}/`basename $x`.o
 	objs="$obj $objs"
-	b $obj cc "$x | headers"
+
+	match "$x" ".*\.c" && b $obj cc "$x | headers"
+	match "$x" ".*\.s" && b $obj as "$x"
 done
 
 b $out/main.elf ld       "$objs | boot/main.ld boot/regmap.ld"

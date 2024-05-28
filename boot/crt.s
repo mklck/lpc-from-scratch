@@ -21,8 +21,10 @@ _start:
 	mov sp, r1
 	msr CPSR_c, #mode_usr
 	mov sp, r0
+	bl init_memory
 	bl main
 	b .
+
 
 irq_handler:
 	push {r0}
@@ -37,3 +39,17 @@ irq_handler:
 	mrs lr, SPSR
 	msr CPSR, lr
 	sub pc, lr, #4
+
+init_memory:
+
+	push {lr}
+	ldr r0, =__bss_begin
+	mov r1, #0
+	ldr r2, =__bss_size
+	bl memset
+
+	ldr r0, =__data_begin
+	ldr r1, =__text_end
+	ldr r2, =__data_size
+	bl memcpy
+	pop {pc}

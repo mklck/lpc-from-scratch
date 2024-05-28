@@ -1,9 +1,23 @@
 #include <u.h>
+#include <string.h>
 #include <lpc213x.h>
 
 #include <timer.h>
 
-static IrqFn timerHandle1, timerHandle2;
+typedef struct {
+	bool on;
+	int  nr;
+	u32  delay;
+} LedPattern;
+
+static IrqFn timerHandle;
+static LedPattern pattern[] = {
+	{true,  2, 100},
+	{true,  3, 500},
+	{false, 3, 700},
+	{false, 2, 700}
+};
+static u32 patternIdx = 0;
 
 static void
 delay(u32 d)
@@ -29,19 +43,16 @@ setLed(int nr, bool on)
 }
 
 static void
-timerHandle2(void)
+timerHandle(void)
 {
-	setLed(0, false);
-	setTimerInt(750);
-	setTimerISR(timerHandle1);
-}
+	LedPattern p;
 
-static void
-timerHandle1(void)
-{
-	setLed(0, true);
-	setTimerInt(250);
-	setTimerISR(timerHandle2);
+	p = pattern[patternIdx];
+	patternIdx = (patternIdx+1) % LEN(pattern);
+
+	setLed(p.nr, p.on);
+	setTimerInt(p.delay);;
+	setTimerISR(timerHandle);
 }
 
 void
@@ -50,14 +61,10 @@ main(void)
 	bool led = false;
 
 	init();
-	setTimerInt(500);
-	setTimerISR(timerHandle1);
+	timerHandle();
 
 	for(;;) {
-		if (led)
-			IO1SET = 1 << 23;
-		else
-			IO1CLR = 1 << 23;
+		setLed(7, led);
 		led = !led;
 		delay(20e3);
 	}
